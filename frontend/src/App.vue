@@ -34,6 +34,14 @@ const handleLogout = () => {
               >
                 分类管理
               </router-link>
+              <!-- Add Rooms navigation -->
+              <router-link
+                to="/rooms"
+                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900"
+                active-class="border-b-2 border-indigo-500"
+              >
+                房间管理
+              </router-link>
             </div>
           </div>
           <div class="flex items-center">
