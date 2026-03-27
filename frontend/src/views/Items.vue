@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useItemStore } from '@/stores/item'
 import { useCategoryStore } from '@/stores/category'
+import { useRoomStore } from '@/stores/room'
 import type { ItemQueryParams } from '@/api/item'
 
+const route = useRoute()
 const itemStore = useItemStore()
 const categoryStore = useCategoryStore()
+const roomStore = useRoomStore()
+const selectedRoom = ref<number | null>(null)
 
 const searchName = ref('')
 const selectedCategory = ref<number | null>(null)
@@ -15,8 +20,26 @@ const currentPage = ref(1)
 const pageSize = 20
 
 onMounted(async () => {
+  // 读取URL查询参数并初始化筛选状态
+  if (route.query.expiring_soon === 'true') {
+    filterExpiringSoon.value = true
+  }
+  if (route.query.name) {
+    searchName.value = String(route.query.name)
+  }
+  if (route.query.category_id) {
+    selectedCategory.value = Number(route.query.category_id)
+  }
+  if (route.query.room_id) {
+    selectedRoom.value = Number(route.query.room_id)
+  }
+  if (route.query.expired !== undefined) {
+    filterExpired.value = route.query.expired === 'true' ? true : (route.query.expired === 'false' ? false : null)
+  }
+  
   await Promise.all([
     categoryStore.fetchCategories(),
+    roomStore.fetchRooms(),
     fetchItems()
   ])
 })
@@ -29,15 +52,23 @@ const fetchItems = async () => {
   
   if (searchName.value) params.name = searchName.value
   if (selectedCategory.value) params.category_id = selectedCategory.value
+  if (selectedRoom.value) params.room_id = selectedRoom.value
   if (filterExpired.value !== null) params.expired = filterExpired.value
   if (filterExpiringSoon.value) params.expiring_soon = true
   
   await itemStore.fetchItems(params)
 }
 
-watch([searchName, selectedCategory, filterExpired, filterExpiringSoon, currentPage], () => {
+// 监听筛选条件变化，重置页码并重新获取数据
+watch([searchName, selectedCategory, selectedRoom, filterExpired, filterExpiringSoon], () => {
+  currentPage.value = 1
   fetchItems()
 }, { deep: true })
+
+// 监听页码变化，重新获取数据
+watch(currentPage, () => {
+  fetchItems()
+})
 
 const totalPages = computed(() => Math.ceil(itemStore.total / pageSize))
 
@@ -55,6 +86,16 @@ const getExpiryStatus = (expiryDate: string | null) => {
   const thirtyDays = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
   if (expDate <= thirtyDays) return 'expiring'
   return 'ok'
+}
+
+const getRoomName = (item: any) => {
+  if (item?.room?.name) return item.room.name
+  const rid = item?.room_id ?? null
+  if (rid && roomStore.rooms.length > 0) {
+    const r = roomStore.rooms.find((r) => r.id === rid)
+    if (r) return r.name
+  }
+  return '-' 
 }
 </script>
 
@@ -94,6 +135,18 @@ const getExpiryStatus = (expiryDate: string | null) => {
           </select>
         </div>
         <div>
+          <label class="block text-sm font-medium text-gray-700">房间</label>
+          <select
+            v-model="selectedRoom"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option :value="null">全部</option>
+            <option v-for="room in roomStore.rooms" :key="room.id" :value="room.id">
+              {{ room.name }}
+            </option>
+          </select>
+        </div>
+        <div>
           <label class="block text-sm font-medium text-gray-700">过期状态</label>
           <select
             v-model="filterExpired"
@@ -125,6 +178,7 @@ const getExpiryStatus = (expiryDate: string | null) => {
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">过期时间</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">房间</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">位置</th>
             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
           </tr>
@@ -148,6 +202,7 @@ const getExpiryStatus = (expiryDate: string | null) => {
               </span>
               <span v-else class="text-sm text-gray-400">-</span>
             </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ getRoomName(item) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.location || '-' }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <router-link :to="`/items/${item.id}/edit`" class="text-indigo-600 hover:text-indigo-900 mr-4">
