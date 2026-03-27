@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Item, Category
+from app.models import User, Item, Category, Room
 from app.schemas import ItemCreate, ItemUpdate, ItemResponse, ItemListResponse
 from app.auth import get_current_user
 
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/items", tags=["items"])
 def get_items(
     name: Optional[str] = Query(None, description="Filter by item name"),
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
+    room_id: Optional[int] = Query(None, description="Filter by room ID"),
     expired: Optional[bool] = Query(None, description="Filter expired items"),
     expiring_soon: Optional[bool] = Query(None, description="Filter items expiring within 30 days"),
     skip: int = Query(0, ge=0),
@@ -29,6 +30,9 @@ def get_items(
     
     if category_id:
         query = query.filter(Item.category_id == category_id)
+    
+    if room_id:
+        query = query.filter(Item.room_id == room_id)
     
     today = date.today()
     
@@ -87,16 +91,36 @@ def create_item(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Category not found"
             )
+    # Validate room_id if provided
+    if item_data.room_id is not None:
+        room = db.query(Room).filter(
+            Room.id == item_data.room_id,
+            Room.user_id == current_user.id
+        ).first()
+        if not room:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Room not found"
+            )
     
-    new_item = Item(
-        **item_data.model_dump(),
-        user_id=current_user.id
-    )
-    db.add(new_item)
-    db.commit()
-    db.refresh(new_item)
-    
-    return new_item
+    try:
+        new_item = Item(
+            **item_data.model_dump(),
+            user_id=current_user.id
+        )
+        db.add(new_item)
+        db.commit()
+        db.refresh(new_item)
+        return new_item
+    except Exception as e:
+        db.rollback()
+        import traceback
+        error_detail = f"Error: {str(e)}\nTraceback: {traceback.format_exc()}"
+        print(error_detail)  # Log to console
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        ) from e
 
 
 @router.put("/{item_id}", response_model=ItemResponse)
@@ -130,13 +154,18 @@ def update_item(
                 detail="Category not found"
             )
     
-    for key, value in update_data.items():
-        setattr(item, key, value)
-    
-    db.commit()
-    db.refresh(item)
-    
-    return item
+    try:
+        for key, value in update_data.items():
+            setattr(item, key, value)
+        db.commit()
+        db.refresh(item)
+        return item
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        ) from e
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
