@@ -36,10 +36,10 @@ onMounted(async () => {
   await categoryStore.fetchCategories()
   await roomStore.fetchRooms()
   
-      if (isEdit.value) {
-        await itemStore.fetchItem(itemId.value)
-        if (itemStore.currentItem) {
-          form.value = {
+  if (isEdit.value) {
+    await itemStore.fetchItem(itemId.value)
+    if (itemStore.currentItem) {
+      form.value = {
         name: itemStore.currentItem.name,
         quantity: itemStore.currentItem.quantity,
         price: itemStore.currentItem.price,
@@ -50,11 +50,50 @@ onMounted(async () => {
         notes: itemStore.currentItem.notes || '',
         usage: itemStore.currentItem.usage || '',
         purchase_channel: itemStore.currentItem.purchase_channel || '',
-          room_id: itemStore.currentItem.room_id ?? null
-          }
-        }
+        room_id: itemStore.currentItem.room_id ?? null
       }
+    }
+  }
 })
+
+// 新增分类相关
+const showCategoryInput = ref(false)
+const newCategoryName = ref('')
+const categoryError = ref('')
+const creatingCategory = ref(false)
+
+const openCategoryInput = () => {
+  showCategoryInput.value = true
+  newCategoryName.value = ''
+  categoryError.value = ''
+}
+
+const cancelCategoryInput = () => {
+  showCategoryInput.value = false
+  newCategoryName.value = ''
+  categoryError.value = ''
+}
+
+const handleCreateCategory = async () => {
+  if (!newCategoryName.value.trim()) {
+    categoryError.value = '分类名称不能为空'
+    return
+  }
+  
+  creatingCategory.value = true
+  categoryError.value = ''
+  
+  try {
+    const newCategory = await categoryStore.createCategory(newCategoryName.value.trim())
+    form.value.category_id = newCategory.id
+    showCategoryInput.value = false
+    newCategoryName.value = ''
+  } catch (e: any) {
+    categoryError.value = e.response?.data?.detail || '创建分类失败，请重试'
+  } finally {
+    creatingCategory.value = false
+  }
+}
 
 const handleSubmit = async () => {
   error.value = ''
@@ -140,15 +179,76 @@ const handleSubmit = async () => {
 
         <div>
           <label class="block text-sm font-medium text-gray-700">分类</label>
-          <select
-            v-model="form.category_id"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option :value="null">无</option>
-            <option v-for="cat in categoryStore.categories" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
-            </option>
-          </select>
+          <div class="flex mt-1">
+            <select
+              v-if="!showCategoryInput"
+              v-model="form.category_id"
+              class="block w-full rounded-l-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option :value="null">无</option>
+              <option v-for="cat in categoryStore.categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+            
+            <!-- 新增分类输入区域 -->
+            <div v-else class="flex-1">
+              <input
+                v-model="newCategoryName"
+                type="text"
+                placeholder="输入分类名称"
+                @keyup.enter="handleCreateCategory"
+                @keyup.escape="cancelCategoryInput"
+                class="block w-full rounded-l-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+            </div>
+            
+            <!-- 按钮区域 -->
+            <div v-if="!showCategoryInput" class="flex">
+              <button
+                type="button"
+                @click="openCategoryInput"
+                class="inline-flex items-center px-3 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100"
+                title="新增分类"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- 新增分类操作按钮 -->
+            <div v-else class="flex">
+              <button
+                type="button"
+                @click="handleCreateCategory"
+                :disabled="creatingCategory"
+                class="inline-flex items-center px-2 border border-l-0 border-gray-300 bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-50"
+                title="确定"
+              >
+                <svg v-if="!creatingCategory" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                @click="cancelCategoryInput"
+                class="inline-flex items-center px-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100"
+                title="取消"
+              >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <!-- 错误提示 -->
+          <p v-if="categoryError" class="mt-1 text-sm text-red-600">{{ categoryError }}</p>
         </div>
 
         <div>
