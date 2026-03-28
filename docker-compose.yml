@@ -12,11 +12,34 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-me-in-production}
       - DATABASE_URL=sqlite:///./data/home_assets.db
+      # Database type selection: sqlite or postgresql
+      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
+      # PostgreSQL configuration (used when DATABASE_TYPE=postgresql)
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB:-home_assets}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    container_name: home-assets-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-home_assets}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   frontend:
     build:
@@ -28,6 +51,8 @@ services:
       - "8080:80"
     depends_on:
       - backend
+      - db
 
 volumes:
   data:
+  postgres_data:

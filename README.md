@@ -17,7 +17,7 @@
 |------|------|
 | 前端 | Vue 3 + TypeScript + Vite + TailwindCSS |
 | 后端 | Python + FastAPI + SQLAlchemy |
-| 数据库 | SQLite |
+| 数据库 | SQLite / PostgreSQL |
 | 认证 | JWT Token |
 | 部署 | Docker Compose |
 
@@ -175,7 +175,41 @@ docker-compose restart
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | SECRET_KEY | JWT 密钥 | your-secret-key-change-me-in-production |
-| DATABASE_URL | 数据库连接 | sqlite:///./data/home_assets.db |
+| DATABASE_URL | 数据库连接（直接指定，优先级最高） | None |
+| DATABASE_TYPE | 数据库类型：sqlite 或 postgresql | sqlite |
+| POSTGRES_USER | PostgreSQL 用户名 | postgres |
+| POSTGRES_PASSWORD | PostgreSQL 密码 | postgres |
+| POSTGRES_HOST | PostgreSQL 主机（Docker 中为 db） | localhost |
+| POSTGRES_PORT | PostgreSQL 端口 | 5432 |
+| POSTGRES_DB | PostgreSQL 数据库名 | home_assets |
+
+### 数据库配置说明
+
+本系统支持 SQLite 和 PostgreSQL 两种数据库，通过环境变量进行配置：
+
+#### 使用 SQLite（默认）
+```bash
+# 默认配置，无需额外设置
+DATABASE_TYPE=sqlite
+# 或者直接指定
+DATABASE_URL=sqlite:///./data/home_assets.db
+```
+
+#### 使用 PostgreSQL
+```bash
+# 方式一：通过 DATABASE_TYPE 自动构建 URL
+DATABASE_TYPE=postgresql
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_HOST=db  # Docker 中使用服务名
+POSTGRES_PORT=5432
+POSTGRES_DB=home_assets
+
+# 方式二：直接指定完整 URL
+DATABASE_URL=postgresql://postgres:password@db:5432/home_assets
+```
+
+**注意**：如果同时设置了 `DATABASE_URL` 和 `DATABASE_TYPE`，`DATABASE_URL` 优先级更高。
 
 ## 常见问题
 
