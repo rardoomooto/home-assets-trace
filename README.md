@@ -7,15 +7,16 @@
 - 用户注册/登录（多用户支持）
 - 物品管理（增删改查）
 - 分类管理
+- **房间管理** - 按房间组织物品
 - 过期物品追踪与提醒
-- 按名称、分类、过期状态筛选
+- 按名称、分类、房间、过期状态筛选
 - 响应式设计，支持移动端访问
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | Vue 3 + TypeScript + Vite + TailwindCSS |
+| 前端 | Vue 3 + TypeScript + Vite + TailwindCSS + Pinia |
 | 后端 | Python + FastAPI + SQLAlchemy |
 | 数据库 | SQLite / PostgreSQL |
 | 认证 | JWT Token |
@@ -31,6 +32,7 @@
 | purchase_date | date | 否 | 购买日期 |
 | expiry_date | date | 否 | 过期时间 |
 | category_id | int | 否 | 分类ID |
+| room_id | int | 否 | 房间ID |
 | location | string | 否 | 存放位置 |
 | notes | string | 否 | 备注 |
 | usage | string | 否 | 用途 |
@@ -145,6 +147,10 @@ home-assets-trace/
 | `/api/categories` | POST | 创建分类 |
 | `/api/categories/{id}` | PUT | 更新分类 |
 | `/api/categories/{id}` | DELETE | 删除分类 |
+| `/api/rooms` | GET | 获取房间列表 |
+| `/api/rooms` | POST | 创建房间 |
+| `/api/rooms/{id}` | PUT | 更新房间 |
+| `/api/rooms/{id}` | DELETE | 删除房间 |
 
 ### 物品筛选参数
 
@@ -152,12 +158,15 @@ home-assets-trace/
 |------|------|------|
 | name | string | 按名称模糊搜索 |
 | category_id | int | 按分类筛选 |
+| room_id | int | 按房间筛选 |
 | expired | bool | 筛选已过期物品 |
 | expiring_soon | bool | 筛选30天内过期物品 |
 | skip | int | 分页偏移 |
 | limit | int | 每页数量 |
 
 ## 数据备份
+
+### SQLite 备份
 
 SQLite 数据库文件位于 `data/home_assets.db`，备份该文件即可。
 
@@ -168,6 +177,18 @@ cp data/home_assets.db data/home_assets_backup_$(date +%Y%m%d).db
 # 恢复
 cp data/home_assets_backup_20240101.db data/home_assets.db
 docker-compose restart
+```
+
+### PostgreSQL 备份
+
+使用 `pg_dump` 和 `pg_restore` 进行备份和恢复。
+
+```bash
+# 备份
+docker exec home-assets-db pg_dump -U postgres home_assets > backup_$(date +%Y%m%d).sql
+
+# 恢复
+docker exec -i home-assets-db psql -U postgres home_assets < backup_20240101.sql
 ```
 
 ## 环境变量
@@ -224,11 +245,17 @@ ports:
 
 ### 2. 数据持久化
 
-数据存储在 `./data` 目录，确保该目录有正确的读写权限。
+- **SQLite**：数据存储在 `./data` 目录，确保该目录有正确的读写权限
+- **PostgreSQL**：数据存储在 Docker 卷 `postgres_data` 中，由 Docker 自动管理
 
 ### 3. 忘记密码
 
 目前没有密码找回功能，可以重新注册一个新账户。
+
+### 4. 选择 SQLite 还是 PostgreSQL？
+
+- **SQLite**：适合个人使用、开发测试，部署简单，无需额外服务
+- **PostgreSQL**：适合多用户、生产环境，支持并发访问和更复杂查询
 
 ## License
 
