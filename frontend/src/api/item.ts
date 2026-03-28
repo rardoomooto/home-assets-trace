@@ -12,6 +12,7 @@ export interface ItemCreate {
   notes?: string | null
   usage?: string | null
   purchase_channel?: string | null
+  room_id?: number | null
 }
 
 export interface ItemUpdate {
@@ -25,6 +26,7 @@ export interface ItemUpdate {
   notes?: string | null
   usage?: string | null
   purchase_channel?: string | null
+  room_id?: number | null
 }
 
 export interface ItemQueryParams {
@@ -34,6 +36,7 @@ export interface ItemQueryParams {
   expiring_soon?: boolean
   skip?: number
   limit?: number
+  room_id?: number
 }
 
 export const itemApi = {

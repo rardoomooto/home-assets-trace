@@ -10,6 +10,7 @@ class ItemBase(BaseModel):
     purchase_date: Optional[date] = None
     expiry_date: Optional[date] = None
     category_id: Optional[int] = None
+    room_id: Optional[int] = None
     location: Optional[str] = None
     notes: Optional[str] = None
     usage: Optional[str] = None
@@ -27,6 +28,7 @@ class ItemUpdate(BaseModel):
     purchase_date: Optional[date] = None
     expiry_date: Optional[date] = None
     category_id: Optional[int] = None
+    room_id: Optional[int] = None
     location: Optional[str] = None
     notes: Optional[str] = None
     usage: Optional[str] = None

@@ -16,6 +16,7 @@ class User(Base):
 
     items = relationship("Item", back_populates="owner", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="owner", cascade="all, delete-orphan")
+    rooms = relationship("Room", back_populates="user", cascade="all, delete-orphan")
 
 
 class Category(Base):
@@ -40,6 +41,7 @@ class Item(Base):
     purchase_date = Column(Date, nullable=True)
     expiry_date = Column(Date, nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     location = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     usage = Column(String, nullable=True)
@@ -50,3 +52,16 @@ class Item(Base):
 
     owner = relationship("User", back_populates="items")
     category = relationship("Category", back_populates="items")
+    room = relationship("Room", back_populates="items")
+
+
+class Room(Base):
+    __tablename__ = "rooms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="rooms")
+    items = relationship("Item", back_populates="room", cascade="all, delete-orphan")

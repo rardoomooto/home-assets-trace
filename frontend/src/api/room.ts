@@ -1,5 +1,5 @@
 import api from './index'
-import type { Room } from '@/types'
+import type { Room, Item } from '@/types'
 
 export interface RoomCreate {
   name: string
@@ -12,6 +12,10 @@ export interface RoomUpdate {
 export interface RoomListResponse {
   rooms: Room[]
   total: number
+}
+
+export interface RoomWithItemsResponse extends Room {
+  items: Item[]
 }
 
 export const roomApi = {
@@ -32,5 +36,10 @@ export const roomApi = {
 
   delete: async (id: number): Promise<void> => {
     await api.delete(`/rooms/${id}`)
+  },
+
+  getRoomItems: async (roomId: number): Promise<RoomWithItemsResponse> => {
+    const response = await api.get<RoomWithItemsResponse>(`/rooms/${roomId}/items`)
+    return response.data
   }
 }

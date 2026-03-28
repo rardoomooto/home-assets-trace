@@ -3,12 +3,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useItemStore } from '@/stores/item'
 import { useCategoryStore } from '@/stores/category'
+import { useRoomStore } from '@/stores/room'
 import type { ItemCreate, ItemUpdate } from '@/api/item'
 
 const router = useRouter()
 const route = useRoute()
 const itemStore = useItemStore()
 const categoryStore = useCategoryStore()
+const roomStore = useRoomStore()
 
 const isEdit = computed(() => !!route.params.id)
 const itemId = computed(() => Number(route.params.id))
@@ -23,7 +25,8 @@ const form = ref<ItemCreate>({
   location: '',
   notes: '',
   usage: '',
-  purchase_channel: ''
+  purchase_channel: '',
+  room_id: null
 })
 
 const error = ref('')
@@ -31,11 +34,12 @@ const loading = ref(false)
 
 onMounted(async () => {
   await categoryStore.fetchCategories()
+  await roomStore.fetchRooms()
   
-  if (isEdit.value) {
-    await itemStore.fetchItem(itemId.value)
-    if (itemStore.currentItem) {
-      form.value = {
+      if (isEdit.value) {
+        await itemStore.fetchItem(itemId.value)
+        if (itemStore.currentItem) {
+          form.value = {
         name: itemStore.currentItem.name,
         quantity: itemStore.currentItem.quantity,
         price: itemStore.currentItem.price,
@@ -45,10 +49,11 @@ onMounted(async () => {
         location: itemStore.currentItem.location || '',
         notes: itemStore.currentItem.notes || '',
         usage: itemStore.currentItem.usage || '',
-        purchase_channel: itemStore.currentItem.purchase_channel || ''
+        purchase_channel: itemStore.currentItem.purchase_channel || '',
+          room_id: itemStore.currentItem.room_id ?? null
+          }
+        }
       }
-    }
-  }
 })
 
 const handleSubmit = async () => {
@@ -142,6 +147,19 @@ const handleSubmit = async () => {
             <option :value="null">无</option>
             <option v-for="cat in categoryStore.categories" :key="cat.id" :value="cat.id">
               {{ cat.name }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">房间</label>
+          <select
+            v-model="form.room_id"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option :value="null">无</option>
+            <option v-for="rm in roomStore.rooms" :key="rm.id" :value="rm.id">
+              {{ rm.name }}
             </option>
           </select>
         </div>

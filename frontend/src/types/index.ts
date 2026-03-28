@@ -28,6 +28,12 @@ export interface Item {
   created_at: string
   updated_at: string
   category?: Category
+  // Optional association to a room
+  room_id?: number
+  room?: {
+    id: number
+    name: string
+  }
 }
 
 export interface ItemListResponse {
@@ -38,4 +44,13 @@ export interface ItemListResponse {
 export interface Token {
   access_token: string
   token_type: string
+}
+
+// Room model alignment with backend
+export interface Room {
+  id: number
+  name: string
+  user_id: number
+  created_at: string
+  items?: Item[]
 }
