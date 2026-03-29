@@ -52,6 +52,28 @@ def get_or_create_default_family(user: User, db: Session) -> Family:
     return default_family
 
 
+def build_family_response(family: Family) -> dict:
+    """构建家庭响应数据"""
+    response_data = {
+        "id": family.id,
+        "name": family.name,
+        "is_default": family.is_default,
+        "created_at": family.created_at,
+        "members": []
+    }
+    
+    for member in family.members:
+        response_data["members"].append({
+            "id": member.id,
+            "user_id": member.user_id,
+            "username": member.user.username,
+            "role": member.role,
+            "joined_at": member.joined_at
+        })
+    
+    return response_data
+
+
 @router.get("", response_model=FamilyListResponse)
 def get_families(
     current_user: User = Depends(get_current_user),
@@ -59,7 +81,11 @@ def get_families(
 ):
     """获取用户所属的所有家庭"""
     families = get_user_families(current_user.id, db)
-    return {"families": families}
+    # 手动构建响应
+    family_responses = []
+    for family in families:
+        family_responses.append(build_family_response(family))
+    return {"families": family_responses}
 
 
 @router.post("", response_model=FamilyResponse, status_code=status.HTTP_201_CREATED)
@@ -85,9 +111,31 @@ def create_family(
     )
     db.add(member)
     db.commit()
-    db.refresh(new_family)
     
-    return new_family
+    # 重新查询家庭，包含成员和用户信息
+    family_with_members = db.query(Family).options(
+        joinedload(Family.members).joinedload(FamilyMember.user)
+    ).filter(Family.id == new_family.id).first()
+    
+    # 手动构建响应，确保包含 username 字段
+    response_data = {
+        "id": family_with_members.id,
+        "name": family_with_members.name,
+        "is_default": family_with_members.is_default,
+        "created_at": family_with_members.created_at,
+        "members": []
+    }
+    
+    for member in family_with_members.members:
+        response_data["members"].append({
+            "id": member.id,
+            "user_id": member.user_id,
+            "username": member.user.username,
+            "role": member.role,
+            "joined_at": member.joined_at
+        })
+    
+    return response_data
 
 
 @router.get("/{family_id}", response_model=FamilyResponse)
@@ -112,7 +160,7 @@ def get_family(
         joinedload(Family.members).joinedload(FamilyMember.user)
     ).filter(Family.id == family_id).first()
     
-    return family
+    return build_family_response(family)
 
 
 @router.put("/{family_id}", response_model=FamilyResponse)
@@ -147,7 +195,13 @@ def update_family(
     
     db.commit()
     db.refresh(family)
-    return family
+    
+    # 重新查询包含成员信息的家庭
+    family_with_members = db.query(Family).options(
+        joinedload(Family.members).joinedload(FamilyMember.user)
+    ).filter(Family.id == family_id).first()
+    
+    return build_family_response(family_with_members)
 
 
 @router.delete("/{family_id}", status_code=status.HTTP_204_NO_CONTENT)

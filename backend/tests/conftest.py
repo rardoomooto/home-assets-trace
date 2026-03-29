@@ -6,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.database import Base, get_db
-from app.models import User, Room, Item
+from app.models import User, Room, Item, Family, FamilyMember
 from app.auth import get_password_hash, create_access_token
 
 
