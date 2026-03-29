@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useItemStore } from '@/stores/item'
 import { useCategoryStore } from '@/stores/category'
 import { useRoomStore } from '@/stores/room'
+import { useFamilyStore } from '@/stores/family'
 import type { ItemCreate, ItemUpdate } from '@/api/item'
 
 const router = useRouter()
@@ -11,6 +12,7 @@ const route = useRoute()
 const itemStore = useItemStore()
 const categoryStore = useCategoryStore()
 const roomStore = useRoomStore()
+const familyStore = useFamilyStore()
 
 const isEdit = computed(() => !!route.params.id)
 const itemId = computed(() => Number(route.params.id))
@@ -22,11 +24,13 @@ const form = ref<ItemCreate>({
   purchase_date: null,
   expiry_date: null,
   category_id: null,
+  room_id: null,
+  family_id: null,
+  is_private: false,
   location: '',
   notes: '',
   usage: '',
-  purchase_channel: '',
-  room_id: null
+  purchase_channel: ''
 })
 
 const error = ref('')
@@ -35,6 +39,7 @@ const loading = ref(false)
 onMounted(async () => {
   await categoryStore.fetchCategories()
   await roomStore.fetchRooms()
+  await familyStore.fetchFamilies()
   
   if (isEdit.value) {
     await itemStore.fetchItem(itemId.value)
@@ -46,13 +51,18 @@ onMounted(async () => {
         purchase_date: itemStore.currentItem.purchase_date,
         expiry_date: itemStore.currentItem.expiry_date,
         category_id: itemStore.currentItem.category_id,
+        room_id: itemStore.currentItem.room_id ?? null,
+        family_id: itemStore.currentItem.family_id ?? familyStore.currentFamilyId,
+        is_private: itemStore.currentItem.is_private ?? false,
         location: itemStore.currentItem.location || '',
         notes: itemStore.currentItem.notes || '',
         usage: itemStore.currentItem.usage || '',
-        purchase_channel: itemStore.currentItem.purchase_channel || '',
-        room_id: itemStore.currentItem.room_id ?? null
+        purchase_channel: itemStore.currentItem.purchase_channel || ''
       }
     }
+  } else {
+    // 新建物品时，默认选择当前家庭
+    form.value.family_id = familyStore.currentFamilyId
   }
 })
 
@@ -265,6 +275,19 @@ const handleSubmit = async () => {
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-gray-700">所属家庭</label>
+          <select
+            v-model="form.family_id"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option :value="null">无</option>
+            <option v-for="family in familyStore.families" :key="family.id" :value="family.id">
+              {{ family.name }}
+            </option>
+          </select>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700">存放位置</label>
           <input
             v-model="form.location"
@@ -298,6 +321,20 @@ const handleSubmit = async () => {
             rows="3"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
+        </div>
+
+        <div class="sm:col-span-2">
+          <div class="flex items-center">
+            <input
+              v-model="form.is_private"
+              type="checkbox"
+              id="is_private"
+              class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <label for="is_private" class="ml-2 block text-sm text-gray-700">
+              仅自己可见（不与家庭成员共享）
+            </label>
+          </div>
         </div>
       </div>
 

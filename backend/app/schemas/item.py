@@ -11,6 +11,8 @@ class ItemBase(BaseModel):
     expiry_date: Optional[date] = None
     category_id: Optional[int] = None
     room_id: Optional[int] = None
+    family_id: Optional[int] = None  # 所属家庭
+    is_private: bool = False  # 仅自己可见
     location: Optional[str] = None
     notes: Optional[str] = None
     usage: Optional[str] = None
@@ -29,6 +31,8 @@ class ItemUpdate(BaseModel):
     expiry_date: Optional[date] = None
     category_id: Optional[int] = None
     room_id: Optional[int] = None
+    family_id: Optional[int] = None
+    is_private: Optional[bool] = None
     location: Optional[str] = None
     notes: Optional[str] = None
     usage: Optional[str] = None

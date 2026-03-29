@@ -2,13 +2,22 @@ from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.database import get_db
-from app.models import User, Item, Category, Room
+from app.models import User, Item, Category, Room, Family, FamilyMember
 from app.schemas import ItemCreate, ItemUpdate, ItemResponse, ItemListResponse
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/items", tags=["items"])
+
+
+def get_family_ids_for_user(user_id: int, db: Session) -> list[int]:
+    """获取用户所属的所有家庭 ID 列表"""
+    memberships = db.query(FamilyMember.family_id).filter(
+        FamilyMember.user_id == user_id
+    ).all()
+    return [m[0] for m in memberships]
 
 
 @router.get("", response_model=ItemListResponse)
@@ -16,6 +25,7 @@ def get_items(
     name: Optional[str] = Query(None, description="Filter by item name"),
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     room_id: Optional[int] = Query(None, description="Filter by room ID"),
+    family_id: Optional[int] = Query(None, description="Filter by family ID"),
     expired: Optional[bool] = Query(None, description="Filter expired items"),
     expiring_soon: Optional[bool] = Query(None, description="Filter items expiring within 30 days"),
     skip: int = Query(0, ge=0),
@@ -23,7 +33,18 @@ def get_items(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Item).filter(Item.user_id == current_user.id)
+    # 获取用户所属的家庭 ID 列表
+    user_family_ids = get_family_ids_for_user(current_user.id, db)
+    
+    # 查询逻辑：
+    # 1. 自己的物品（无论是否私有）
+    # 2. 同家庭成员的非私有物品
+    query = db.query(Item).filter(
+        or_(
+            Item.user_id == current_user.id,  # 自己的物品
+            (Item.family_id.in_(user_family_ids)) & (Item.is_private == False)  # 同家庭非私有物品
+        )
+    )
     
     if name:
         query = query.filter(Item.name.ilike(f"%{name}%"))
@@ -33,6 +54,9 @@ def get_items(
     
     if room_id:
         query = query.filter(Item.room_id == room_id)
+    
+    if family_id:
+        query = query.filter(Item.family_id == family_id)
     
     today = date.today()
     

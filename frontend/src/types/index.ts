@@ -9,6 +9,7 @@ export interface Category {
   id: number
   name: string
   user_id: number
+  family_id?: number | null
   created_at: string
 }
 
@@ -20,6 +21,9 @@ export interface Item {
   purchase_date: string | null
   expiry_date: string | null
   category_id: number | null
+  room_id: number | null
+  family_id: number | null
+  is_private: boolean
   location: string | null
   notes: string | null
   usage: string | null
@@ -28,8 +32,6 @@ export interface Item {
   created_at: string
   updated_at: string
   category?: Category
-  // Optional association to a room
-  room_id?: number
   room?: {
     id: number
     name: string
@@ -51,6 +53,23 @@ export interface Room {
   id: number
   name: string
   user_id: number
+  family_id?: number | null
   created_at: string
   items?: Item[]
+}
+
+export interface Family {
+  id: number
+  name: string
+  is_default: boolean
+  created_at: string
+  members: FamilyMember[]
+}
+
+export interface FamilyMember {
+  id: number
+  user_id: number
+  username: string
+  role: string
+  joined_at: string
 }

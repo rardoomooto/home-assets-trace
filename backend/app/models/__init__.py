@@ -1,7 +1,6 @@
 try:
-    from app.models.models import User, Category, Item, Room
-    __all__ = ["User", "Category", "Item", "Room"]
+    from app.models.models import User, Category, Item, Room, Family, FamilyMember
+    __all__ = ["User", "Category", "Item", "Room", "Family", "FamilyMember"]
 except ImportError:
-    # Room model may not be defined in this environment yet
     from app.models.models import User, Category, Item
     __all__ = ["User", "Category", "Item"]

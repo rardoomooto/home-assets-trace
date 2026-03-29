@@ -8,11 +8,13 @@ export interface ItemCreate {
   purchase_date?: string | null
   expiry_date?: string | null
   category_id?: number | null
+  room_id?: number | null
+  family_id?: number | null
+  is_private?: boolean
   location?: string | null
   notes?: string | null
   usage?: string | null
   purchase_channel?: string | null
-  room_id?: number | null
 }
 
 export interface ItemUpdate {
@@ -22,21 +24,24 @@ export interface ItemUpdate {
   purchase_date?: string | null
   expiry_date?: string | null
   category_id?: number | null
+  room_id?: number | null
+  family_id?: number | null
+  is_private?: boolean
   location?: string | null
   notes?: string | null
   usage?: string | null
   purchase_channel?: string | null
-  room_id?: number | null
 }
 
 export interface ItemQueryParams {
   name?: string
   category_id?: number
+  room_id?: number
+  family_id?: number
   expired?: boolean
   expiring_soon?: boolean
   skip?: number
   limit?: number
-  room_id?: number
 }
 
 export const itemApi = {
