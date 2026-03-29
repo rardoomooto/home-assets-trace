@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -14,10 +14,17 @@ router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
 @router.get("", response_model=RoomListResponse)
 def get_rooms(
+    family_id: Optional[int] = Query(None, description="按家庭ID过滤房间"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    rooms = db.query(Room).filter(Room.user_id == current_user.id).all()
+    """获取用户的房间列表，可按家庭过滤"""
+    query = db.query(Room).filter(Room.user_id == current_user.id)
+    
+    if family_id is not None:
+        query = query.filter(Room.family_id == family_id)
+    
+    rooms = query.all()
     total = len(rooms)
     return {"rooms": rooms, "total": total}
 

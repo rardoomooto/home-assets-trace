@@ -19,8 +19,9 @@ export interface RoomWithItemsResponse extends Room {
 }
 
 export const roomApi = {
-  getAll: async (): Promise<Room[]> => {
-    const response = await api.get<RoomListResponse>('/rooms')
+  getAll: async (familyId?: number): Promise<Room[]> => {
+    const params = familyId !== undefined ? { family_id: familyId } : {}
+    const response = await api.get<RoomListResponse>('/rooms', { params })
     return response.data.rooms
   },
 

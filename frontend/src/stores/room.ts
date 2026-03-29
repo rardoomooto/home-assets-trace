@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { Room, Item } from '@/types'
 import { roomApi } from '@/api/room'
 import type { RoomUpdate, RoomWithItemsResponse } from '@/api/room'
+import { useFamilyStore } from './family'
 
 // Pinia store for Rooms with CRUD operations using roomApi
 export const useRoomStore = defineStore('room', () => {
@@ -11,11 +12,23 @@ export const useRoomStore = defineStore('room', () => {
   const currentRoom = ref<Room | null>(null)
   const roomsWithItems = ref<Map<number, RoomWithItemsResponse>>(new Map())
   const loadingRoomItems = ref(false)
+  const familyStore = useFamilyStore()
+  
+  // 监听当前家庭变化，自动重新获取房间
+  watch(
+    () => familyStore.currentFamilyId,
+    (newFamilyId) => {
+      if (newFamilyId !== null) {
+        fetchRooms(newFamilyId)
+      }
+    },
+    { immediate: false }
+  )
 
-  async function fetchRooms() {
+  async function fetchRooms(familyId?: number) {
     loading.value = true
     try {
-      rooms.value = await roomApi.getAll()
+      rooms.value = await roomApi.getAll(familyId)
     } finally {
       loading.value = false
     }
@@ -58,12 +71,12 @@ export const useRoomStore = defineStore('room', () => {
     }
   }
 
-  async function fetchRoomsWithItems(): Promise<RoomWithItemsResponse[]> {
+  async function fetchRoomsWithItems(familyId?: number): Promise<RoomWithItemsResponse[]> {
     loading.value = true
     loadingRoomItems.value = true
     try {
-      // First fetch all rooms
-      const roomsList = await roomApi.getAll()
+      // First fetch all rooms (filtered by family if provided)
+      const roomsList = await roomApi.getAll(familyId)
       rooms.value = roomsList
       
       // Then fetch items for each room in parallel

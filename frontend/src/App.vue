@@ -2,17 +2,29 @@
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useFamilyStore } from '@/stores/family'
+import { useRoomStore } from '@/stores/room'
 
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
+const roomStore = useRoomStore()
 
 const handleLogout = () => {
   authStore.logout()
 }
 
+const handleFamilyChange = (familyId: number) => {
+  familyStore.setCurrentFamily(familyId)
+  // 切换家庭时重新获取房间
+  roomStore.fetchRooms(familyId)
+}
+
 onMounted(async () => {
   if (authStore.isAuthenticated) {
     await familyStore.fetchFamilies()
+    // 初始加载时获取当前家庭的房间
+    if (familyStore.currentFamilyId) {
+      await roomStore.fetchRooms(familyStore.currentFamilyId)
+    }
   }
 })
 </script>
@@ -62,7 +74,7 @@ onMounted(async () => {
             <div v-if="familyStore.hasMultipleFamilies" class="relative">
               <select
                 :value="familyStore.currentFamilyId"
-                @change="(e) => familyStore.setCurrentFamily(Number((e.target as HTMLSelectElement).value))"
+                @change="(e) => handleFamilyChange(Number((e.target as HTMLSelectElement).value))"
                 class="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               >
                 <option v-for="family in familyStore.families" :key="family.id" :value="family.id">
