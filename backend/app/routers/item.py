@@ -105,6 +105,12 @@ def create_item(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # 确保用户有默认家庭
+    if not item_data.family_id:
+        from app.routers.family import get_or_create_default_family
+        default_family = get_or_create_default_family(current_user, db)
+        item_data.family_id = default_family.id
+    
     if item_data.category_id:
         category = db.query(Category).filter(
             Category.id == item_data.category_id,

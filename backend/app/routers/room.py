@@ -28,7 +28,15 @@ def create_room(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    new_room = Room(name=room_data.name, user_id=current_user.id)
+    # 确保用户有默认家庭
+    from app.routers.family import get_or_create_default_family
+    default_family = get_or_create_default_family(current_user, db)
+    
+    new_room = Room(
+        name=room_data.name,
+        user_id=current_user.id,
+        family_id=default_family.id
+    )
     db.add(new_room)
     db.commit()
     db.refresh(new_room)

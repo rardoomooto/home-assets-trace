@@ -36,9 +36,14 @@ def create_category(
             detail="Category with this name already exists"
         )
     
+    # 确保用户有默认家庭
+    from app.routers.family import get_or_create_default_family
+    default_family = get_or_create_default_family(current_user, db)
+    
     new_category = Category(
         name=category_data.name,
-        user_id=current_user.id
+        user_id=current_user.id,
+        family_id=default_family.id
     )
     db.add(new_category)
     db.commit()
