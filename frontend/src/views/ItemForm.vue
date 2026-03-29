@@ -36,10 +36,24 @@ const form = ref<ItemCreate>({
 const error = ref('')
 const loading = ref(false)
 
+// 根据当前家庭过滤房间
+const filteredRooms = computed(() => {
+  if (!familyStore.currentFamilyId) {
+    return roomStore.rooms
+  }
+  return roomStore.rooms.filter(room => room.family_id === familyStore.currentFamilyId)
+})
+
 onMounted(async () => {
   await categoryStore.fetchCategories()
-  await roomStore.fetchRooms()
   await familyStore.fetchFamilies()
+  
+  // 根据当前家庭获取房间
+  if (familyStore.currentFamilyId) {
+    await roomStore.fetchRooms(familyStore.currentFamilyId)
+  } else {
+    await roomStore.fetchRooms()
+  }
   
   if (isEdit.value) {
     await itemStore.fetchItem(itemId.value)
@@ -158,13 +172,12 @@ const handleSubmit = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">价格 *</label>
+          <label class="block text-sm font-medium text-gray-700">价格</label>
           <input
             v-model.number="form.price"
             type="number"
             min="0"
             step="0.01"
-            required
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
@@ -268,24 +281,13 @@ const handleSubmit = async () => {
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           >
             <option :value="null">无</option>
-            <option v-for="rm in roomStore.rooms" :key="rm.id" :value="rm.id">
+            <option v-for="rm in filteredRooms" :key="rm.id" :value="rm.id">
               {{ rm.name }}
             </option>
           </select>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">所属家庭</label>
-          <select
-            v-model="form.family_id"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option :value="null">无</option>
-            <option v-for="family in familyStore.families" :key="family.id" :value="family.id">
-              {{ family.name }}
-            </option>
-          </select>
-        </div>
+
 
         <div>
           <label class="block text-sm font-medium text-gray-700">存放位置</label>
