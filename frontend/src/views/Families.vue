@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useFamilyStore } from '@/stores/family'
+import FamilyMembers from '@/components/FamilyMembers.vue'
 
 const familyStore = useFamilyStore()
 
 const showCreateModal = ref(false)
+const showMembersModal = ref(false)
+const selectedFamily = ref<{ id: number; name: string } | null>(null)
 const newFamilyName = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -48,6 +51,18 @@ const handleDelete = async (id: number, name: string) => {
 const handleSwitch = (id: number) => {
   familyStore.setCurrentFamily(id)
 }
+
+const openMembersModal = (family: { id: number; name: string }) => {
+  selectedFamily.value = family
+  showMembersModal.value = true
+}
+
+const closeMembersModal = () => {
+  showMembersModal.value = false
+  selectedFamily.value = null
+  // 刷新家庭列表
+  familyStore.fetchFamilies()
+}
 </script>
 
 <template>
@@ -90,6 +105,12 @@ const handleSwitch = (id: number) => {
               </div>
             </div>
             <div class="ml-4 flex-shrink-0 flex space-x-2">
+              <button
+                @click="openMembersModal(family)"
+                class="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-900"
+              >
+                管理成员
+              </button>
               <button
                 v-if="family.id !== familyStore.currentFamilyId"
                 @click="handleSwitch(family.id)"
@@ -159,5 +180,13 @@ const handleSwitch = (id: number) => {
         </div>
       </div>
     </div>
+    
+    <!-- 家庭成员管理模态框 -->
+    <FamilyMembers
+      v-if="showMembersModal && selectedFamily"
+      :family-id="selectedFamily.id"
+      :family-name="selectedFamily.name"
+      @close="closeMembersModal"
+    />
   </div>
 </template>
