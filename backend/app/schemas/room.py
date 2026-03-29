@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 from app.schemas.item import ItemResponse
 
@@ -19,6 +19,7 @@ class RoomUpdate(RoomBase):
 class RoomResponse(RoomBase):
     id: int
     user_id: int
+    family_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -33,6 +34,7 @@ class RoomListResponse(BaseModel):
 class RoomWithItemsResponse(RoomBase):
     id: int
     user_id: int
+    family_id: Optional[int] = None
     created_at: datetime
     items: List[ItemResponse]
 
