@@ -8,8 +8,10 @@
 - 物品管理（增删改查）
 - 分类管理
 - **房间管理** - 按房间组织物品
-- 过期物品追踪与提醒
-- 按名称、分类、房间、过期状态筛选
+- **家庭管理** - 支持多家庭/多人共享
+- 过期物品追踪（筛选已过期/即将过期物品）
+- ~~过期提醒~~ **[TODO]** 邮件/推送提醒功能
+- 按名称、分类、房间、家庭、过期状态筛选
 - 响应式设计，支持移动端访问
 
 ## 技术栈
@@ -22,21 +24,43 @@
 | 认证 | JWT Token |
 | 部署 | Docker Compose |
 
+## 家庭管理
+
+系统支持多家庭管理，允许多个用户共享同一个家庭空间。
+
+### 核心概念
+
+- **家庭 (Family)**: 一个共享空间，包含多个成员和物品
+- **家庭成员 (FamilyMember)**: 属于某个家庭的用户，可分配不同角色
+- **角色权限**:
+  - `owner` - 所有者，可管理家庭和成员
+  - `admin` - 管理员，可管理家庭和成员
+  - `member` - 普通成员，只能查看和添加物品
+
+### 功能说明
+
+- 每个用户注册后自动创建一个默认家庭
+- 家庭所有者可以邀请其他用户加入
+- 物品可设置为私有（仅自己可见）或家庭共享
+- 支持按家庭筛选物品列表
+
 ## 物品字段
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | name | string | 是 | 物品名称 |
 | quantity | int | 是 | 数量 |
-| price | float | 是 | 价格 |
+| price | float | 否 | 价格（默认 0.0） |
 | purchase_date | date | 否 | 购买日期 |
 | expiry_date | date | 否 | 过期时间 |
 | category_id | int | 否 | 分类ID |
 | room_id | int | 否 | 房间ID |
+| family_id | int | 否 | 所属家庭ID |
 | location | string | 否 | 存放位置 |
 | notes | string | 否 | 备注 |
 | usage | string | 否 | 用途 |
 | purchase_channel | string | 否 | 购买途径 |
+| is_private | bool | 否 | 仅自己可见（默认 false） |
 
 ## 快速开始
 
@@ -133,24 +157,56 @@ home-assets-trace/
 
 ## API 接口
 
+### 认证接口
+
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/api/auth/register` | POST | 用户注册 |
 | `/api/auth/login` | POST | 用户登录 |
 | `/api/auth/me` | GET | 获取当前用户信息 |
+
+### 物品接口
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
 | `/api/items` | GET | 获取物品列表（支持筛选） |
 | `/api/items` | POST | 创建物品 |
 | `/api/items/{id}` | GET | 获取物品详情 |
 | `/api/items/{id}` | PUT | 更新物品 |
 | `/api/items/{id}` | DELETE | 删除物品 |
+
+### 分类接口
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
 | `/api/categories` | GET | 获取分类列表 |
 | `/api/categories` | POST | 创建分类 |
+| `/api/categories/{id}` | GET | 获取分类详情 |
 | `/api/categories/{id}` | PUT | 更新分类 |
 | `/api/categories/{id}` | DELETE | 删除分类 |
+
+### 房间接口
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
 | `/api/rooms` | GET | 获取房间列表 |
 | `/api/rooms` | POST | 创建房间 |
+| `/api/rooms/{id}` | GET | 获取房间详情 |
 | `/api/rooms/{id}` | PUT | 更新房间 |
 | `/api/rooms/{id}` | DELETE | 删除房间 |
+| `/api/rooms/{id}/items` | GET | 获取房间内的物品 |
+
+### 家庭接口
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/families` | GET | 获取用户所属的家庭列表 |
+| `/api/families` | POST | 创建新家庭 |
+| `/api/families/{id}` | GET | 获取家庭详情 |
+| `/api/families/{id}` | PUT | 更新家庭信息 |
+| `/api/families/{id}` | DELETE | 删除家庭 |
+| `/api/families/{id}/members` | POST | 添加家庭成员 |
+| `/api/families/{id}/members/{user_id}` | DELETE | 移除家庭成员 |
 
 ### 物品筛选参数
 
@@ -159,6 +215,7 @@ home-assets-trace/
 | name | string | 按名称模糊搜索 |
 | category_id | int | 按分类筛选 |
 | room_id | int | 按房间筛选 |
+| family_id | int | 按家庭筛选 |
 | expired | bool | 筛选已过期物品 |
 | expiring_soon | bool | 筛选30天内过期物品 |
 | skip | int | 分页偏移 |
@@ -236,12 +293,10 @@ DATABASE_URL=postgresql://postgres:password@db:5432/home_assets
 
 ### 1. 端口冲突
 
-如果 8080 端口被占用，修改 `docker-compose.yml` 中的端口映射：
+- **Docker 部署**：前端默认使用 8080 端口，后端 8000 端口，数据库 5432 端口
+- **本地开发**：前端默认使用 3000 端口，后端使用 8000 端口
 
-```yaml
-ports:
-  - "3000:80"  # 将 8080 改为其他端口
-```
+如需修改端口，编辑对应服务的端口映射配置：
 
 ### 2. 数据持久化
 
