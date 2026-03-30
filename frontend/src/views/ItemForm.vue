@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useItemStore } from '@/stores/item'
 import { useCategoryStore } from '@/stores/category'
@@ -44,16 +44,24 @@ const filteredRooms = computed(() => {
   return roomStore.rooms.filter(room => room.family_id === familyStore.currentFamilyId)
 })
 
-onMounted(async () => {
-  await categoryStore.fetchCategories()
-  await familyStore.fetchFamilies()
-  
-  // 根据当前家庭获取房间
+// 根据当前家庭获取房间
+const fetchRoomsByCurrentFamily = async () => {
   if (familyStore.currentFamilyId) {
     await roomStore.fetchRooms(familyStore.currentFamilyId)
   } else {
     await roomStore.fetchRooms()
   }
+}
+
+// 监听家庭变化，重新获取房间
+watch(() => familyStore.currentFamilyId, async () => {
+  await fetchRoomsByCurrentFamily()
+})
+
+onMounted(async () => {
+  await categoryStore.fetchCategories()
+  await familyStore.fetchFamilies()
+  await fetchRoomsByCurrentFamily()
   
   if (isEdit.value) {
     await itemStore.fetchItem(itemId.value)

@@ -3,6 +3,7 @@ import type { Room, Item } from '@/types'
 
 export interface RoomCreate {
   name: string
+  family_id?: number | null
 }
 
 export interface RoomUpdate {

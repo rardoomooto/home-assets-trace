@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoomStore } from '@/stores/room'
+import { useFamilyStore } from '@/stores/family'
 import type { Item } from '@/types'
 
 const roomStore = useRoomStore()
+const familyStore = useFamilyStore()
 
 const showAddModal = ref(false)
 const showEditModal = ref(false)
@@ -15,9 +17,32 @@ const error = ref('')
 const expandedRooms = ref<Set<number>>(new Set())
 const loadingItems = ref<Record<number, boolean>>({})
 
-onMounted(() => {
-  roomStore.fetchRooms()
+// 根据当前家庭过滤房间
+const filteredRooms = computed(() => {
+  if (!familyStore.currentFamilyId) {
+    return roomStore.rooms
+  }
+  return roomStore.rooms.filter(room => room.family_id === familyStore.currentFamilyId)
 })
+
+onMounted(async () => {
+  await familyStore.fetchFamilies()
+  await fetchRoomsByCurrentFamily()
+})
+
+// 监听家庭变化，重新获取房间
+watch(() => familyStore.currentFamilyId, async () => {
+  await fetchRoomsByCurrentFamily()
+})
+
+// 根据当前家庭获取房间
+const fetchRoomsByCurrentFamily = async () => {
+  if (familyStore.currentFamilyId) {
+    await roomStore.fetchRooms(familyStore.currentFamilyId)
+  } else {
+    await roomStore.fetchRooms()
+  }
+}
 
 const openAddModal = () => {
   roomName.value = ''
@@ -38,7 +63,7 @@ const handleAdd = async () => {
     return
   }
   try {
-    await roomStore.createRoom(roomName.value)
+    await roomStore.createRoom(roomName.value, familyStore.currentFamilyId)
     showAddModal.value = false
   } catch (e: any) {
     error.value = e.response?.data?.detail || '创建失败'
@@ -116,7 +141,7 @@ const isLoading = (roomId: number) => loadingItems.value[roomId] || false
     </div>
 
     <div class="mt-6 bg-white shadow sm:rounded-md overflow-hidden">
-      <div v-for="room in roomStore.rooms" :key="room.id" class="border-b border-gray-200 last:border-b-0">
+      <div v-for="room in filteredRooms" :key="room.id" class="border-b border-gray-200 last:border-b-0">
         <!-- 房间标题行 -->
         <div 
           class="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
@@ -190,7 +215,7 @@ const isLoading = (roomId: number) => loadingItems.value[roomId] || false
         </div>
       </div>
       
-      <div v-if="roomStore.rooms.length === 0" class="px-6 py-4 text-center text-gray-500">
+      <div v-if="filteredRooms.length === 0" class="px-6 py-4 text-center text-gray-500">
         暂无房间
       </div>
     </div>

@@ -34,8 +34,8 @@ export const useRoomStore = defineStore('room', () => {
     }
   }
 
-  async function createRoom(name: string) {
-    const room = await roomApi.create({ name })
+  async function createRoom(name: string, familyId?: number | null) {
+    const room = await roomApi.create({ name, family_id: familyId })
     rooms.value.unshift(room)
     return room
   }
