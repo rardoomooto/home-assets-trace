@@ -4,12 +4,14 @@ import { useRoute } from 'vue-router'
 import { useItemStore } from '@/stores/item'
 import { useCategoryStore } from '@/stores/category'
 import { useRoomStore } from '@/stores/room'
+import { useFamilyStore } from '@/stores/family'
 import type { ItemQueryParams } from '@/api/item'
 
 const route = useRoute()
 const itemStore = useItemStore()
 const categoryStore = useCategoryStore()
 const roomStore = useRoomStore()
+const familyStore = useFamilyStore()
 const selectedRoom = ref<number | null>(null)
 
 const searchName = ref('')
@@ -50,6 +52,7 @@ const fetchItems = async () => {
     limit: pageSize
   }
   
+  if (familyStore.currentFamilyId) params.family_id = familyStore.currentFamilyId
   if (searchName.value) params.name = searchName.value
   if (selectedCategory.value) params.category_id = selectedCategory.value
   if (selectedRoom.value) params.room_id = selectedRoom.value
@@ -64,6 +67,18 @@ watch([searchName, selectedCategory, selectedRoom, filterExpired, filterExpiring
   currentPage.value = 1
   fetchItems()
 }, { deep: true })
+
+// 监听家庭切换，重置筛选条件并重新获取数据
+watch(() => familyStore.currentFamilyId, () => {
+  currentPage.value = 1
+  selectedRoom.value = null
+  selectedCategory.value = null
+  fetchItems()
+  // 重新加载当前家庭的房间列表
+  if (familyStore.currentFamilyId) {
+    roomStore.fetchRooms(familyStore.currentFamilyId)
+  }
+})
 
 // 监听页码变化，重新获取数据
 watch(currentPage, () => {
