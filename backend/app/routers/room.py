@@ -39,10 +39,13 @@ def create_room(
     from app.routers.family import get_or_create_default_family
     default_family = get_or_create_default_family(current_user, db)
     
+    # 如果请求中指定了 family_id，使用它；否则使用默认家庭
+    family_id = room_data.family_id if room_data.family_id is not None else default_family.id
+    
     new_room = Room(
         name=room_data.name,
         user_id=current_user.id,
-        family_id=default_family.id
+        family_id=family_id
     )
     db.add(new_room)
     db.commit()

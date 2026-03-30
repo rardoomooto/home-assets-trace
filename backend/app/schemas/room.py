@@ -10,7 +10,7 @@ class RoomBase(BaseModel):
 
 
 class RoomCreate(RoomBase):
-    pass
+    family_id: Optional[int] = None
 
 
 class RoomUpdate(RoomBase):
