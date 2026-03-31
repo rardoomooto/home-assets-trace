@@ -16,3 +16,13 @@ htmlcov/
 *.swo
 venv/
 *.db
+
+# Agent 相关
+.opencode/
+.sisyphus/
+.claude/
+.gemini/
+session-*.md
+optimization-*.md
+CLAUDE.md
+GEMINI.md
