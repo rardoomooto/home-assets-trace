@@ -70,7 +70,7 @@
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/rardoomooto/home-assets-trace.git
 cd home-assets-trace
 
 # 创建环境变量文件
